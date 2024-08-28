@@ -1,8 +1,20 @@
+/* globals.css */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Custom styles if needed */
 body {
-  @apply bg-gray-100 text-black;
+  @apply bg-gray-100 font-sans;
+}
+
+.input-textbox {
+  @apply border p-2 mb-2 w-full;
+}
+
+.submit-button {
+  @apply bg-blue-500 text-white p-2 rounded;
+}
+
+.compare-button {
+  @apply bg-green-500 text-white p-2 rounded;
 }
