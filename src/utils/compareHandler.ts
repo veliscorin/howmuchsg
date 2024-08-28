@@ -11,14 +11,15 @@ export const handleCompare = async (
   setResultColor: (color: string) => void
 ) => {
   try {
-    // Updated query to include both itemName and unit
+    // Updated query to include both itemName and unit as separate fields
     const q = query(
       collection(db, 'items'),
       where('itemName', '==', item),
-      where('unit', '==', unit)
+      where('unit', '==', unit) // Query by unit separately
     );
-    
     const querySnapshot = await getDocs(q);
+
+    console.log('QuerySnapshot:', querySnapshot.size);
 
     if (querySnapshot.empty) {
       setResult('No historical data found for this item with the specified unit.');
@@ -33,24 +34,25 @@ export const handleCompare = async (
       const data = doc.data();
       const docPrice = data.price;
       const docQuantity = data.quantity;
+      const docUnit = data.unit;
 
-      // Ensure docQuantity is a string
       let quantityValue: number;
       let quantityUnit: string;
 
       if (typeof docQuantity === 'string') {
         // Split the quantity into numeric value and unit
-        [quantityValue, quantityUnit] = docQuantity.split(' ');
+        const [quantityStr, unitStr] = docQuantity.split(' ');
+        quantityValue = parseFloat(quantityStr); // Convert string to number
+        quantityUnit = unitStr;
       } else {
         // Handle if quantity is not a string (e.g., directly a number)
-        quantityValue = Number(docQuantity);
-        quantityUnit = 'g'; // Default unit
+        quantityValue = docQuantity;
+        quantityUnit = 'g'; // Default unit if not provided
       }
 
       // Convert quantities to a common unit if necessary
       let convertedQuantity = quantityValue;
       if (quantityUnit !== unit) {
-        // Add unit conversion logic here if needed
         if (quantityUnit === 'kg' && unit === 'g') {
           convertedQuantity *= 1000; // Convert kilograms to grams
         } else if (quantityUnit === 'g' && unit === 'kg') {

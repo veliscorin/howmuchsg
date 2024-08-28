@@ -1,9 +1,16 @@
 'use client';
 
-import { cormorantGaramond } from './layout'; // Adjust the path based on your file structure
+import { Cormorant_Garamond } from "next/font/google";
 import { useState } from 'react';
 import { handleSubmit } from '../utils/submitHandler'; // Adjust the path as necessary
 import { handleCompare } from '../utils/compareHandler'; // Adjust the path as necessary
+
+// Import and define the Cormorant Garamond font
+const cormorantGaramond = Cormorant_Garamond({
+  subsets: ["latin"],
+  weight: ["700"],
+  style: ["italic"],
+});
 
 export default function Page() {
   const [price, setPrice] = useState('');
