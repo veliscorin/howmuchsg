@@ -1,85 +1,46 @@
-// src/utils/compareHandler.ts
-import { collection, query, where, getDocs } from 'firebase/firestore';
-import { db } from '../firebase'; // Adjust the path as necessary
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../firebase';
+import { convertToGrams, unitConversion } from './conversionUtils'; // Import utilities
 
 export const handleCompare = async (
   item: string,
   price: string,
   quantity: string,
-  unit: string,  // New parameter for the unit
+  unit: string,  // Unit of the current item
   setResult: (message: string) => void,
   setResultColor: (color: string) => void
 ) => {
   try {
-    // Updated query to include both itemName and unit as separate fields
-    const q = query(
-      collection(db, 'items'),
-      where('itemName', '==', item),
-      where('unit', '==', unit) // Query by unit separately
-    );
-    const querySnapshot = await getDocs(q);
+    // Convert the submitted quantity to grams
+    const parsedPrice = parseFloat(price);
+    const parsedQuantity = parseFloat(quantity);
+    const normalizedQuantity = convertToGrams(parsedQuantity, unit);
+    const currentCostPerGram = parsedPrice / normalizedQuantity;
 
-    console.log('QuerySnapshot:', querySnapshot.size);
+    // Fetch the average price per gram from the uniqueItems collection
+    const uniqueItemDoc = await getDoc(doc(db, 'uniqueItems', item.toLowerCase()));
 
-    if (querySnapshot.empty) {
-      setResult('No historical data found for this item with the specified unit.');
+    if (!uniqueItemDoc.exists()) {
+      setResult('No historical data found for this item.');
       setResultColor('blue');
       return;
     }
 
-    let totalCost = 0;
-    let totalQuantity = 0;
+    const data = uniqueItemDoc.data();
+    const averageCostPerGram = data.avgPrice || 0;
 
-    querySnapshot.forEach((doc) => {
-      const data = doc.data();
-      const docPrice = data.price;
-      const docQuantity = data.quantity;
-      const docUnit = data.unit;
-
-      let quantityValue: number;
-      let quantityUnit: string;
-
-      if (typeof docQuantity === 'string') {
-        // Split the quantity into numeric value and unit
-        const [quantityStr, unitStr] = docQuantity.split(' ');
-        quantityValue = parseFloat(quantityStr); // Convert string to number
-        quantityUnit = unitStr;
-      } else {
-        // Handle if quantity is not a string (e.g., directly a number)
-        quantityValue = docQuantity;
-        quantityUnit = 'g'; // Default unit if not provided
-      }
-
-      // Convert quantities to a common unit if necessary
-      let convertedQuantity = quantityValue;
-      if (quantityUnit !== unit) {
-        if (quantityUnit === 'kg' && unit === 'g') {
-          convertedQuantity *= 1000; // Convert kilograms to grams
-        } else if (quantityUnit === 'g' && unit === 'kg') {
-          convertedQuantity /= 1000; // Convert grams to kilograms
-        }
-        // Add more conversions as necessary (liters, milliliters, etc.)
-      }
-
-      totalCost += docPrice;
-      totalQuantity += convertedQuantity;
-    });
-
-    const averageCostPerUnit = totalCost / totalQuantity;
-    const currentCostPerUnit = parseFloat(price) / parseFloat(quantity);
-
-    if (currentCostPerUnit > averageCostPerUnit) {
-      setResult(`Pricier at $${currentCostPerUnit.toFixed(2)} per unit compared to average $${averageCostPerUnit.toFixed(2)} per unit`);
+    if (currentCostPerGram > averageCostPerGram) {
+      setResult(`Pricier at $${currentCostPerGram.toFixed(2)} per gram compared to average $${averageCostPerGram.toFixed(2)} per gram.`);
       setResultColor('red');
-    } else if (currentCostPerUnit < averageCostPerUnit) {
-      setResult(`Cheaper at $${currentCostPerUnit.toFixed(2)} per unit compared to average $${averageCostPerUnit.toFixed(2)} per unit`);
+    } else if (currentCostPerGram < averageCostPerGram) {
+      setResult(`Cheaper at $${currentCostPerGram.toFixed(2)} per gram compared to average $${averageCostPerGram.toFixed(2)} per gram.`);
       setResultColor('green');
     } else {
-      setResult(`Same price at $${currentCostPerUnit.toFixed(2)} per unit compared to average $${averageCostPerUnit.toFixed(2)} per unit`);
+      setResult(`Same price at $${currentCostPerGram.toFixed(2)} per gram compared to average $${averageCostPerGram.toFixed(2)} per gram.`);
       setResultColor('black');
     }
   } catch (error) {
-    console.error('Error fetching documents: ', error);
+    console.error('Error fetching document: ', error);
     setResult('An error occurred. Please try again later.');
     setResultColor('black');
   }
