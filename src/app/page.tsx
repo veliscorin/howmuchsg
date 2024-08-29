@@ -4,6 +4,7 @@ import { Cormorant_Garamond } from "next/font/google";
 import { useState } from 'react';
 import { handleSubmit } from '../utils/submitHandler'; // Adjust the path as necessary
 import { handleCompare } from '../utils/compareHandler'; // Adjust the path as necessary
+import Image from 'next/image'; // Import the Image component
 
 // Import and define the Cormorant Garamond font
 const cormorantGaramond = Cormorant_Garamond({
@@ -21,8 +22,17 @@ export default function Page() {
   const [resultColor, setResultColor] = useState('black');
 
   return (
-    <div className="p-8 max-w-lg mx-auto bg-gray-100 min-h-screen flex flex-col items-center justify-center">
-      <h1 className={`${cormorantGaramond.className} text-4xl text-center mb-4 text-black`}>HowMuch</h1>
+    <div className="p-8 max-w-lg mx-auto min-h-screen flex flex-col items-center justify-center">
+      
+      {/* Replace the h1 with the logo */}
+      <Image
+        src="/images/howmuch-v1.png"
+        alt="howmuchsg logo"
+        width={150}  // Set the desired width
+        height={50}  // Set the desired height
+        className="mb-4" // Add margin-bottom for spacing
+      />
+      
       <form
         className="flex flex-col items-center"
         onSubmit={(e) => handleSubmit(e, item, price, quantity, unit, setResult, setResultColor)}
@@ -49,16 +59,16 @@ export default function Page() {
             className="w-full p-2 border border-gray-300 rounded bg-white text-black"
           />
         </label>
-        <label className="w-full mb-4 text-lg">
+        <label className="w-full mb-8 text-lg">
           Quantity:
-          <div className="flex">
+          <div className="flex gap-2">
             <input
               type="text"
               placeholder="e.g., 100"
               value={quantity}
               onChange={(e) => setQuantity(e.target.value)}
               required
-              className="w-full p-2 border border-gray-300 rounded bg-white text-black mr-2"
+              className="w-full p-2 border border-gray-300 rounded bg-white text-black"
             />
             <select
               value={unit}
@@ -77,21 +87,23 @@ export default function Page() {
             </select>
           </div>
         </label>
+
         <div className="flex gap-4">
-          <button
-            type="submit"
-            className="px-4 py-2 mb-4 border border-gray-300 rounded bg-blue-500 text-white"
-          >
-            Submit
-          </button>
           <button
             type="button"
             onClick={() => handleCompare(item, price, quantity, unit, setResult, setResultColor)}
-            className="px-4 py-2 mb-4 border border-gray-300 rounded bg-gray-200 text-black"
+            className="border border-gray-300 compare-button w-28"
           >
             Compare
           </button>
+          <button
+            type="submit"
+            className="border border-red-300 submit-button w-28"
+          >
+            Submit
+          </button>
         </div>
+
       </form>
       {result && <div className="mt-4 text-center" style={{ color: resultColor }}>{result}</div>}
     </div>

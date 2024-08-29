@@ -4,7 +4,7 @@
 @tailwind utilities;
 
 body {
-  @apply bg-gray-100 font-sans;
+  @apply bg-[#e0d8d0] font-sans;
 }
 
 .input-textbox {
@@ -12,9 +12,9 @@ body {
 }
 
 .submit-button {
-  @apply bg-blue-500 text-white p-2 rounded;
+  @apply bg-[#00bb77] text-white p-2 rounded; /* Consistent padding, width, and background */
 }
 
 .compare-button {
-  @apply bg-green-500 text-white p-2 rounded;
+  @apply bg-[#836953] text-white p-2 rounded; /* Consistent padding, width, and background */
 }
