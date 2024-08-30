@@ -3,23 +3,27 @@
 import { useState, useEffect } from 'react';
 import { Combobox, ComboboxInput, ComboboxOptions, ComboboxOption } from '@headlessui/react';
 import { collection, query, where, getDocs } from 'firebase/firestore';
-import { db } from '../firebase';
+import { db, auth } from '../firebase';
+import { onAuthStateChanged, User, signOut } from 'firebase/auth';
 import Image from 'next/image';
+import LoginModal from '../components/LoginModal'; // Ensure the import path is correct
 import { handleSubmit } from '../utils/submitHandler';
 import { handleCompare } from '../utils/compareHandler';
 
 export default function Page() {
+  const [user, setUser] = useState<User | null>(null); // State to store the user object
+  const [modalIsOpen, setModalIsOpen] = useState(false); // State to manage modal visibility
   const [price, setPrice] = useState('');
   const [quantity, setQuantity] = useState('');
-  const [unit, setUnit] = useState('g'); 
+  const [unit, setUnit] = useState('g');
   const [item, setItem] = useState('');
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [result, setResult] = useState<string | null>(null);
   const [resultColor, setResultColor] = useState('black');
-
+  
   useEffect(() => {
     const fetchSuggestions = async () => {
-      if (item && item.length > 2) { // Ensure item is not null or undefined
+      if (item && item.length > 2) {
         const q = query(
           collection(db, 'uniqueItems'),
           where('searchKeywords', 'array-contains', item.toLowerCase())
@@ -36,19 +40,72 @@ export default function Page() {
     fetchSuggestions();
   }, [item]);
 
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setUser(user);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const handleSubmitClick = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) {
+      setModalIsOpen(true); // Show the login modal if the user is not logged in
+    } else {
+      await handleSubmit(e, item, price, quantity, unit, setResult, setResultColor);
+    }
+  };
+
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      console.log('User signed out successfully');
+      // You can add additional actions here, such as redirecting the user
+    } catch (error) {
+      console.error('Error signing out: ', error);
+    }
+  };
+  
+
   return (
-    <div className="p-8 max-w-lg mx-auto min-h-screen flex flex-col items-center justify-center">
+    <div className="p-8 max-w-lg mx-auto min-h-screen flex flex-col items-center justify-center relative">
       <Image
         src="/images/howmuch-v1.png"
         alt="howmuchsg logo"
-        width={150}  
-        height={50}  
-        className="mb-4" 
+        width={150}
+        height={50}
+        className="mb-4"
       />
-      
+
+    {user && user.emailVerified && (
+      <div className="absolute top-4 right-4 flex items-center space-x-4">
+        {user.photoURL ? (
+          <img
+            src={user.photoURL}
+            alt="User profile"
+            className="rounded-full border border-gray-300 w-10"
+          />
+        ) : (
+          <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center text-white">
+            {/* Fallback to initials or icon if no profile picture */}
+            {user.email?.charAt(0).toUpperCase()}
+          </div>
+        )}
+        <button
+          onClick={handleLogout}
+          className="bg-red-500 text-white px-4 py-2 rounded"
+        >
+          Logout
+        </button>
+      </div>
+    )}
+
+
       <form
         className="flex flex-col items-center"
-        onSubmit={(e) => handleSubmit(e, item, price, quantity, unit, setResult, setResultColor)}
+        onSubmit={handleSubmitClick}
       >
         <label className="w-full mb-2 text-lg">
           Item:
@@ -137,9 +194,11 @@ export default function Page() {
             Submit
           </button>
         </div>
-
       </form>
       {result && <div className="mt-4 text-center" style={{ color: resultColor }}>{result}</div>}
+
+      {/* Login Modal */}
+      <LoginModal isOpen={modalIsOpen} onRequestClose={() => setModalIsOpen(false)} />
     </div>
   );
 }
