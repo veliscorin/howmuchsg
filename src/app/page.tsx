@@ -43,6 +43,7 @@ export default function Page() {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
+      console.log(user);
     });
 
     return () => unsubscribe();
@@ -79,7 +80,7 @@ export default function Page() {
         className="mb-4"
       />
 
-    {user && user.emailVerified && (
+    {user && (
       <div className="absolute top-4 right-4 flex items-center space-x-4">
         {user.photoURL ? (
           <img

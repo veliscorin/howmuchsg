@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import Modal from 'react-modal';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, sendEmailVerification } from 'firebase/auth';
-import { auth, googleProvider } from '../firebase';
+import { auth, googleProvider, facebookProvider } from '../firebase';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -55,7 +55,15 @@ export default function LoginModal({ isOpen, onRequestClose }: LoginModalProps) 
     }
   };
   
-
+  const handleFacebookLogin = async () => {
+    try {
+      await signInWithPopup(auth, facebookProvider);      
+      onRequestClose(); // Close modal on successful login
+    } catch (error) {
+      console.error('Error during Facebook login:', error);
+      setError('Failed to login with Facebook. Please try again.');
+    }
+  };
 
   const handleGoogleLogin = async () => {
     try {
@@ -144,7 +152,7 @@ export default function LoginModal({ isOpen, onRequestClose }: LoginModalProps) 
                 Google
               </button>
               <button
-                onClick={() => {/* Add Facebook login logic here */}}
+                onClick={handleFacebookLogin}
                 className="flex items-center bg-white border border-gray-300 rounded p-2"
               >
                 <img

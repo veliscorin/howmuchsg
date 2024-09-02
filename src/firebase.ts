@@ -1,7 +1,7 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
-import { getAuth, GoogleAuthProvider } from 'firebase/auth'; // Import auth and GoogleAuthProvider
+import { getAuth, GoogleAuthProvider, FacebookAuthProvider } from 'firebase/auth'; // Import auth, GoogleAuthProvider, and FacebookAuthProvider
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -25,4 +25,8 @@ const auth = getAuth(app);
 // Initialize Google Auth Provider
 const googleProvider = new GoogleAuthProvider();
 
-export { db, auth, googleProvider };
+// Initialize Facebook Auth Provider
+const facebookProvider = new FacebookAuthProvider();
+facebookProvider.addScope('public_profile');
+
+export { db, auth, googleProvider, facebookProvider };
