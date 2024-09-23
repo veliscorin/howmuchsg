@@ -1,6 +1,22 @@
-import { collection, addDoc, doc, getDoc, updateDoc, setDoc } from 'firebase/firestore';
+import { collection, addDoc, doc, getDoc, updateDoc, setDoc, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../firebase';
 import { convertToGrams, unitConversion } from './conversionUtils'; // Import utilities
+
+// Function to calculate median
+const calculateMedian = (prices: number[]): number => {
+    const sortedPrices = prices.sort((a, b) => a - b);
+    const mid = Math.floor(sortedPrices.length / 2);
+
+    return sortedPrices.length % 2 !== 0
+        ? sortedPrices[mid]
+        : (sortedPrices[mid - 1] + sortedPrices[mid]) / 2;
+};
+
+// Function to calculate average
+const calculateAverage = (prices: number[], count: number): number => {
+    const sum = prices.reduce((acc, price) => acc + price, 0);
+    return sum / count;
+};
 
 export const handleSubmit = async (
     event: React.FormEvent,
@@ -22,28 +38,46 @@ export const handleSubmit = async (
 
         const uniqueItemDoc = await getDoc(uniqueItemsRef);
 
-        let newAvgPrice = parsedPrice / normalizedQuantity;
+        let allPrices: number[] = [parsedPrice / normalizedQuantity]; // Start with the current price
 
         if (uniqueItemDoc.exists()) {
             const data = uniqueItemDoc.data();
-            const currentAvgPrice = data.avgPrice || 0;
             const currentCount = data.count || 0;
 
-            // Calculate the new average price per gram
-            newAvgPrice = ((currentAvgPrice * currentCount) + (parsedPrice / normalizedQuantity)) / (currentCount + 1);
+            // Fetch all previous prices for the item
+            const itemsQuery = query(collection(db, 'items'), where('itemName', '==', item));
+            const querySnapshot = await getDocs(itemsQuery);
 
-            // Update the uniqueItems collection with the new average price and count
+            querySnapshot.forEach((doc) => {
+                const itemData = doc.data();
+                if (itemData.normalizedQuantity && itemData.price) {
+                    allPrices.push(itemData.price / itemData.normalizedQuantity); // Add all existing prices
+                }
+            });
+
+            // Calculate the new average price
+            const newAvgPrice = calculateAverage(allPrices, currentCount + 1);
+
+            // Calculate the median price
+            const medianPrice = calculateMedian(allPrices);
+
+            // Update the uniqueItems collection with the new average price, count, and median price
             await updateDoc(uniqueItemsRef, {
                 avgPrice: newAvgPrice,
-                count: currentCount + 1,
+                medianPrice: medianPrice,
+                count: allPrices.length, // Update the count with the total number of entries
                 unit: 'g', // Always store the normalized unit as grams
                 searchKeywords: keywords,
             });
         } else {
             // Create a new document if it doesn't exist
+            const newAvgPrice = calculateAverage(allPrices, 1);
+            const medianPrice = calculateMedian(allPrices);
+
             await setDoc(uniqueItemsRef, {
                 name: item.toLowerCase(),
                 avgPrice: newAvgPrice,
+                medianPrice: medianPrice,
                 count: 1,
                 unit: 'g', // Store everything normalized to grams
                 searchKeywords: keywords,
@@ -68,8 +102,6 @@ export const handleSubmit = async (
         setResultColor('red');
     }
 };
-
-
 
 // Function to generate search keywords from item name
 const generateSearchKeywords = (itemName: string): string[] => {

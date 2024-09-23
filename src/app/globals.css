@@ -18,3 +18,22 @@ body {
 .compare-button {
   @apply bg-[#836953] text-white p-2 rounded; /* Consistent padding, width, and background */
 }
+
+.red-box {
+  background-color: #ffcccc; /* Light red */
+  border: 1px solid red;
+  padding: 10px;
+}
+
+.green-box {
+  background-color: #ccffcc; /* Light green */
+  border: 1px solid green;
+  padding: 10px;
+}
+
+.black-box {
+  background-color: #e0e0e0; /* Neutral color */
+  border: 1px solid #000;
+  padding: 10px;
+}
+

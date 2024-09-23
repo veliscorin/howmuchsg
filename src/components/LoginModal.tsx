@@ -2,6 +2,9 @@ import { useState } from 'react';
 import Modal from 'react-modal';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, sendEmailVerification } from 'firebase/auth';
 import { auth, googleProvider, facebookProvider } from '../firebase';
+import { FacebookAuthProvider } from 'firebase/auth'; // Keep this import to extract the credential
+import { updateProfile, User } from 'firebase/auth';
+
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -20,12 +23,10 @@ export default function LoginModal({ isOpen, onRequestClose }: LoginModalProps) 
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
-  
-      // Check if the email is verified
+
       if (user.emailVerified) {
         onRequestClose(); // Close modal on successful login
       } else {
-        // Sign out the user immediately since they are not verified
         await auth.signOut();
         setError('Please verify your email before logging in.');
       }
@@ -37,33 +38,37 @@ export default function LoginModal({ isOpen, onRequestClose }: LoginModalProps) 
 
   const handleEmailRegister = async () => {
     try {
-      // Attempt to create the user
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
-  
-      // Send verification email if the user is successfully created
-      await sendEmailVerification(user);
 
-      // Immediately sign the user out to ensure they verify their email first
+      await sendEmailVerification(user);
       await auth.signOut();
     } catch (error) {
       console.error('Error during email registration:', error);
-      // Suppress error details and always show the same message
     } finally {
-      // Always inform the user to check their email for verification
       setError('A verification email has been sent. Please check your inbox and verify your email before logging in.');
     }
   };
-  
+
   const handleFacebookLogin = async () => {
     try {
-      await signInWithPopup(auth, facebookProvider);      
+      const result = await signInWithPopup(auth, facebookProvider);
+  
+      const credential = FacebookAuthProvider.credentialFromResult(result);
+      const accessToken = credential?.accessToken;
+  
+      if (accessToken && result.user) {
+        await updateUserProfilePicture(result.user, accessToken);
+      }
+  
       onRequestClose(); // Close modal on successful login
     } catch (error) {
       console.error('Error during Facebook login:', error);
       setError('Failed to login with Facebook. Please try again.');
     }
-  };
+  };  
+  
+  
 
   const handleGoogleLogin = async () => {
     try {
@@ -75,6 +80,23 @@ export default function LoginModal({ isOpen, onRequestClose }: LoginModalProps) 
     }
   };
 
+  const updateUserProfilePicture = async (user: User, accessToken: string) => {
+    try {
+      const facebookUserId = user.providerData[0].uid;
+      const photoURL = `https://graph.facebook.com/${facebookUserId}/picture?type=large&access_token=${accessToken}`;
+  
+      // Use the updateProfile function from firebase/auth
+      await updateProfile(user, {
+        photoURL: photoURL,
+      });
+  
+      console.log('Updated profile picture URL:', photoURL);
+    } catch (error) {
+      console.error('Error updating profile picture:', error);
+    }
+  };
+  
+
   return (
     <Modal
       isOpen={isOpen}
@@ -85,7 +107,7 @@ export default function LoginModal({ isOpen, onRequestClose }: LoginModalProps) 
     >
       <h2 className="text-xl font-bold mb-6 text-center">{isRegistering ? 'Register' : 'Login'}</h2>
 
-      {error && <div className="text-red-500 text-sm mb-4">{error}</div>} {/* Display error message */}
+      {error && <div className="text-red-500 text-sm mb-4">{error}</div>}
 
       <div className="space-y-4">
         <div>
